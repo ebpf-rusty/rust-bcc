@@ -13,20 +13,9 @@ pub struct Instruction {
     imm: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Instructions {
     inner: Vec<Instruction>,
-}
-
-impl std::fmt::Debug for Instructions {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut f = f.debug_struct("Instructions\n");
-        for ins in self.inner.iter() {
-            f.field("ins", &ins);
-        }
-
-        f.finish()
-    }
 }
 
 impl Instructions {
@@ -49,5 +38,13 @@ impl Instructions {
             });
         }
         Instructions { inner }
+    }
+
+    pub fn inner(&self) -> &Vec<Instruction> {
+        &self.inner
+    }
+
+    pub fn inner_mut(&mut self) -> &Vec<Instruction> {
+        &mut self.inner
     }
 }
