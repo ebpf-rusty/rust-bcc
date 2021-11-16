@@ -27,7 +27,7 @@ use crate::BccError;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::Error;
 use std::os::raw::{c_char, c_void};
@@ -294,6 +294,8 @@ impl BPFBuilder {
             debug: self.debug,
         };
 
+        bpf.trace_autoload();
+
         // Attach all of our USDT probes as uprobes.
         for context in contexts {
             let _ = context.attach(&mut bpf, attach_usdt_ignore_pid)?;
@@ -304,6 +306,8 @@ impl BPFBuilder {
 }
 
 impl BPF {
+    // dump the specified function in bytes
+    // user can choose to visualize the bpf code by Instruction
     pub fn dump_func(&self, func_name: CString) -> Result<Vec<u8>, BccError> {
         unsafe {
             let raw_func_name = func_name.as_ptr();
@@ -314,11 +318,40 @@ impl BPF {
                     module: "".into(),
                 });
             }
-            let size=bpf_function_size(self.ptr(),raw_func_name);
-            let slice =
-                std::ptr::slice_from_raw_parts(start as *const u8, size);
+            let size = bpf_function_size(self.ptr(), raw_func_name);
+            let slice = std::ptr::slice_from_raw_parts(start as *const u8, size);
             let slice = &*slice;
             return Ok(slice.into());
+        }
+    }
+
+    // autolod functions with 'kprobe__' like prefix
+    fn trace_autoload(&mut self) {
+        unsafe {
+            let module = self.ptr();
+            for i in 0..bpf_num_functions(module) {
+                let func_name = bpf_function_name(module, i);
+                let func_name = CStr::from_ptr(func_name);
+                let func_name = func_name.to_str().unwrap();
+                // e.g kprobe__tcp_set_state
+                if func_name.starts_with("kprobe__") {
+                    let fixed_name = self.fix_syscall_name(&func_name[8..]);
+                    crate::Kprobe::new()
+                        .function(&fixed_name)
+                        .handler(func_name)
+                        .attach(self)
+                        .unwrap();
+                }
+                if func_name.starts_with("kprobe__") {
+                    let fixed_name = self.fix_syscall_name(&func_name[8..]);
+                    crate::Kprobe::new()
+                        .function(&fixed_name)
+                        .handler(func_name)
+                        .attach(self)
+                        .unwrap();
+                }
+                // TODO: tracepoint__ | raw_tracepoint__ | kfunc__ | kretfun__ || lsm__  
+            }
         }
     }
 
@@ -646,6 +679,17 @@ impl BPF {
             }
             Ok(File::from_raw_fd(fd))
         }
+    }
+
+    // remove arch prefix in the syscall name
+    pub fn fix_syscall_name(&self, name: &str) -> String {
+        for &prefix in SYSCALL_PREFIXES.iter() {
+            if name.starts_with(prefix) {
+                let r = &name[prefix.len()..];
+                return String::from(r);
+            }
+        }
+        String::from(name)
     }
 
     /// Returns the syscall prefix for the running kernel

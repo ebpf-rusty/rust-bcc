@@ -15,6 +15,8 @@ use std::io::{BufRead, BufReader};
 pub struct Kprobe {
     handler: Option<String>,
     function: Option<String>,
+    // if the function name is regex
+    regex: bool,
 }
 
 impl Kprobe {
@@ -22,6 +24,11 @@ impl Kprobe {
     /// before attaching.
     pub fn new() -> Self {
         Default::default()
+    }
+
+    pub fn regex(mut self, regex: bool) -> Self {
+        self.regex = regex;
+        self
     }
 
     /// Specify the name of the probe handler within the BPF code. This is a

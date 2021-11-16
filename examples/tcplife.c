@@ -13,9 +13,10 @@ struct ipv4_data_t {
     u64 rx_b;
     u64 tx_b;
     u64 span_us;
-    char task[TASK_COMM_LEN];
+    char task[128];
 };
 BPF_PERF_OUTPUT(ipv4_events);
+
 struct ipv6_data_t {
     u64 ts_us;
     u32 pid;
@@ -25,7 +26,7 @@ struct ipv6_data_t {
     u64 rx_b;
     u64 tx_b;
     u64 span_us;
-    char task[TASK_COMM_LEN];
+    char task[128];
 };
 BPF_PERF_OUTPUT(ipv6_events);
 
@@ -35,6 +36,7 @@ struct id_t {
 };
 BPF_HASH(whoami, struct sock *, struct id_t);
 
+// kprobe
 int kprobe__tcp_set_state(struct pt_regs *ctx, struct sock *sk, int state)
 {
     u32 pid = bpf_get_current_pid_tgid() >> 32;

@@ -104,14 +104,7 @@ struct ipv6_data_t {
 }
 
 fn do_main(runnable: Arc<AtomicBool>) -> Result<(), BccError> {
-    let matches = App::new("cpudist")
-        .arg(
-            Arg::with_name("Port")
-                .long("Port")
-                .short("P")
-                .help("comma-separated list of destination ports to trace")
-                .takes_value(true),
-        )
+    let matches = App::new("tcpconnect")
         .arg(
             Arg::with_name("pid")
                 .long("pid")
@@ -139,6 +132,13 @@ fn do_main(runnable: Arc<AtomicBool>) -> Result<(), BccError> {
                 .short("6")
                 .help("trace ipv6 only")
                 .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("Port")
+                .long("Port")
+                .short("P")
+                .help("comma-separated list of destination ports to trace")
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("count")
@@ -206,13 +206,8 @@ fn do_main(runnable: Arc<AtomicBool>) -> Result<(), BccError> {
 
     while runnable.load(Ordering::SeqCst) {
         bpf.perf_map_poll(200);
-        // if let Some(d) = duration {
-        //     if std::time::Instant::now() - start >= d {
-        //         break;
-        //     }
-        // }
     }
-    println!("detaching...");
+    println!("Detaching...");
     Ok(())
 }
 
@@ -291,5 +286,4 @@ fn main() {
         eprintln!("Error: {}", x);
         std::process::exit(1);
     }
-    println!("Detaching...");
 }
