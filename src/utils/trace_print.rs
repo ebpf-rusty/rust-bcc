@@ -59,6 +59,10 @@ fn bytes_to_string(bytes: &[u8]) -> String {
     String::from_utf8(bytes.to_owned()).unwrap()
 }
 
+pub fn clear_screen(){
+    print!("\x1B[2J\x1B[1;1H");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

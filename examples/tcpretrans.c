@@ -13,7 +13,6 @@
 // separate data structs for ipv4 and ipv6
 struct ipv4_data_t {
     u32 pid;
-    u64 ip;
     u32 saddr;
     u32 daddr;
     u16 lport;
@@ -25,7 +24,6 @@ BPF_PERF_OUTPUT(ipv4_events);
 
 struct ipv6_data_t {
     u32 pid;
-    u64 ip;
     unsigned __int128 saddr;
     unsigned __int128 daddr;
     u16 lport;
@@ -50,7 +48,6 @@ static int trace_event(struct pt_regs *ctx, struct sock *skp, int type)
     if (family == AF_INET) {
         struct ipv4_data_t data4 = {};
         data4.pid = pid;
-        data4.ip = 4;
         data4.type = type;
         data4.saddr = skp->__sk_common.skc_rcv_saddr;
         data4.daddr = skp->__sk_common.skc_daddr;
@@ -62,7 +59,6 @@ static int trace_event(struct pt_regs *ctx, struct sock *skp, int type)
     } else if (family == AF_INET6) {
         struct ipv6_data_t data6 = {};
         data6.pid = pid;
-        data6.ip = 6;
         data6.type = type;
         bpf_probe_read(&data6.saddr, sizeof(data6.saddr),
                        skp->__sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
